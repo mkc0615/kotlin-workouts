@@ -8,7 +8,7 @@
 import Chapter3 as chapter3
 import Chapter4 as chapter4
 import Chapter5 as chapter5
-
+import Chapter7 as chapter7
 
 fun main(args: Array<String>) {
     println("Hello Kotlin!")
@@ -24,5 +24,11 @@ fun main(args: Array<String>) {
     // Chapter 5
     val chap5 = chapter5()
     chap5.workout()
+
+    // chapter 7
+    val chap7 = chapter7()
+    var ex1 = chap7.ex1
+    var ex2 = chap7.ex2
+    chap7.exampleCheck(ex1, ex2)
 
 }
