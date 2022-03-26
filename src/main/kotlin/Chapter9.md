@@ -5,53 +5,33 @@
 9.1.1 제네릭 함수와 프로퍼티
 
 ```kotlin
-val authors = listOf("John", "Sveltna")
-
-val authors: List<String> = emptyList();
-val authors = emptyList<String>();
+>>> val letters = ('a'..'z').toList()
+>>> println(letters.slice<Char>(0..2)) // 타입 인자를 명시적으로 지정한다. 
+[a, b, c]
+>>> println(letters.slice(10..13)) // 컴파일러는 여기서 T가 Char라는 사실을 추론한다. 
+[k, l, m, n]
 ```
 
 ```kotlin
-public fun <T> List<T>.slice(indices: IntRange): List<T>
-
-val <T> List<T>.penultimate: T
-	get() = this[size - 2]
-```
-
-```kotlin
-fun <T : Number> List<T>.sum(): T // Kotlin
-<T extend Number> T sum(List<T> list) // Java
-```
-
-```kotlin
-fun <T: Comparable<T>> max(first: T, second: T): T {
-	// 코틀린 컴파일러에 의해 first.compareTo(second) > 0으로 변한다.
-	return if (first > second) first else second
+fun <T : Number> oneHalf(value: T): Double { // Number를 타입 파라미터 상한으로 정한다. 
+    return value.toDouble() / 2.0 // Number 클래스에 정의된 메소드를 호출한다. 
 }
 
-println(max("kotlin", "java")) // kotlin
-println(max("kotlin", 42")) // 42의 경우 첫 번째 인자의 타입 정보와 일치하지 않기 때문에 컴파일 에러
+>>> println(oneHalf(3))
+1.5
 ```
 
 ```kotlin
-fun <T> ensureTraillingPeriod(seq: T) where T: CharSequence, T: Appendable {
-	if (!seq.endsWith('.')) seq.append('.')
-}
-```
-
-```kotlin
-class A<T> {
-	// 타입 파라미터 T에 대해 별도의 상한을 지정하지 않았기 때문에 `Nullable`
-	fun process(value: T) {
-		value?.hashCode()
-	}
+class Processor<T> {
+		fun process(value: T) {
+				value?.hashCode() // "value"는 널이 될 수 있다. 따라서 안전한 호출을 사용해야 한다. 
+		}
 }
 
-class B<T: Any> {
-	// 타입 파라미터 T에 대해 Any로 상한을 지정하였기 때문에 NonNull
-	fun process(value: T) {
-		value.hashCode()
-	}
+class Processor<T : Any> {
+		fun process(value: T) {
+				value.hashCode()
+		}
 }
 ```
 
@@ -65,9 +45,37 @@ class B<T: Any> {
 
 9.2.1 실행 시점의 제네릭: 타입 검사와 캐스트
 
+```kotlin
+val list1: List<String> = listOf("a", "b")
+val list2: List<Int> = listOf(1, 2, 3)
+
+fun printSum(c: Collection<*>) {
+    val intList = c as? List<Int>                 
+            ?: throw IllegalArgumentException("List is expected")
+    println(intList.sum())
+}
+>>> printSum(listOf(1, 2, 3))               
+6
+
+>>> printSum(setOf(1, 2, 3))                  
+IllegalArgumentException: List is expected
+>>> printSum(listOf("a", "b", "c"))          
+ClassCastException: String cannot be cast to Number
+```
+
 9.2.2 실체화한 타입 파라미터를 사용한 함수 선언
 
 9.2.3 실체화한 타입 파라미터로 클래스 참조 대신
+
+```kotlin
+fun printSum(c: Collection<Int>) {
+    if (c is List<Int>) {           
+        println(c.sum())
+    }
+}
+>>> printSum(listOf(1, 2, 3))
+6
+```
 
 9.2.4 실체화한 타입 파라미터의 제약
 
@@ -75,9 +83,60 @@ class B<T: Any> {
 
 9.3.1 변성이 있는 이유: 인자를 함수에 넘기기
 
+```kotlin
+>>> val strings = mutableListOf("abc", "bac")
+>>> addAnswer(strings) // 이 줄이 컴파일된다면.                 
+>>> println(strings.maxBy { it.length })  
+ClassCastException: Integer cannot be cast to String // 실행 시점에 예외가 발생할 것이다.
+```
+
 9.3.2 클래스, 타입, 하위 타입
 
 9.3.3 공변성: 하위 타입 관계를 유지
+
+```kotlin
+interface Producer<out T> {  // 클래스가 T에 대해 공변적이라고 선언한다. 
+    fun produce(): T
+}
+```
+
+```kotlin
+open class Animal {
+    fun feed() { ... }
+}
+class Herd<T : Animal> {  // 이 타입 파라미터를 무공변성으로 지정한다. 
+    val size: Int get() = ...
+    operator fun get(i: Int): T { ... }
+}
+fun feedAll(animals: Herd<Animal>) {
+    for (i in 0 until animals.size) {
+        animals[i].feed()
+    }
+}
+
+// 사용자 코드가 고양이 무리를 만들어서 관리한다. 
+class Cat : Animal() {   
+    fun cleanLitter() { ... }
+}
+fun takeCareOfCats(cats: Herd<Cat>) {
+    for (i in 0 until cats.size) {
+        cats[i].cleanLitter()
+        // feedAll(cats)           
+    }
+}
+```
+
+```kotlin
+class Herd<out T : Animal> {  
+   ...
+}
+fun takeCareOfCats(cats: Herd<Cat>) {
+    for (i in 0 until cats.size) {
+        cats[i].cleanLitter()
+    }
+    feedAll(cats)  
+}
+```
 
 9.3.4 반공변성: 뒤집힌 하위 타입 관계
 
